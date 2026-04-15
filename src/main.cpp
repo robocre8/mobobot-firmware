@@ -11,8 +11,8 @@ const int UDP_PORT = 8888;
 
 
 //------------ WIFI CONFIG --------------
-const char* WIFI_SSID = "samukospot";
-const char* WIFI_PASS = "samuko312";
+const char* WIFI_SSID = "mobobot1234";
+const char* WIFI_PASS = "mobobot1234";
 //---------------------------------------
 
 
@@ -68,7 +68,7 @@ void connect_wifi()
   Serial.print("Connected. ESP32 IP: ");
   // Serial.println(WiFi.localIP());
   // Initialize mDNS
-  if (!MDNS.begin("texabot")) {   // Set the hostname to "esp32.local"
+  if (!MDNS.begin("mobobot")) {   // Set the hostname to "esp32.local"
     Serial.println("Error setting up MDNS responder!");
     while(1) {
       delay(1000);
