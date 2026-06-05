@@ -32,29 +32,43 @@ uint64_t wifiConnCheckTime, wifiConnCheckTimeInterval = 1000000;
 //--------------- WIFI CONNECTION FUNCTION ------------------
 void connect_wifi()
 {
-  Serial.print("Setting up Access Point...");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  // Set WiFi mode to Access Point
-  WiFi.mode(WiFiMode_t::WIFI_AP); 
-  
-  // Start the Access Point
-  bool success = WiFi.softAP(WIFI_SSID, WIFI_PASS);
+  Serial.print("Connecting to WiFi");
 
-  if (success) {
-    Serial.println(" Success!");
-    Serial.print("AP IP address: ");
-    Serial.println(WiFi.softAPIP()); // Usually 192.168.4.1
-  } else {
-    Serial.println(" Failed to start AP!");
-    return;
+  uint32_t start_attempt = millis();
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    // led.off();
+    // buzzer.off();
+    // delay(250);
+    // led.on();
+    // buzzer.on();
+    // delay(250);
+
+    led.blink(250);
+    buzzer.beep(250);
+    Serial.print(".");
+
+     // optional timeout
+    if (millis() - start_attempt > 10000)
+    {
+      Serial.println("\nRetry WiFi...");
+      WiFi.disconnect();
+      WiFi.begin(WIFI_SSID, WIFI_PASS);
+      start_attempt = millis();
+    }
   }
-
-  // Visual/Audio confirmation of successful AP boot
   led.off();
   buzzer.off();
 
-  // Initialize mDNS (So you can still use mobobot.local)
-  if (!MDNS.begin("mobobot")) {   
+  Serial.println();
+  Serial.print("Connected. ESP32 IP: ");
+  // Serial.println(WiFi.localIP());
+  // Initialize mDNS
+  if (!MDNS.begin("mobobot")) {   // Set the hostname to "esp32.local"
     Serial.println("Error setting up MDNS responder!");
     while(1) {
       delay(1000);
@@ -65,13 +79,10 @@ void connect_wifi()
 
 void check_wifi_connection()
 {
-  // In AP Mode, the ESP32 is hosting the network, so it doesn't "lose connection" 
-  // the same way a station does. We just make sure the AP interface is still active.
-  if (WiFi.getMode() == WiFiMode_t::WIFI_AP) {
+  if (WiFi.status() == WL_CONNECTED)
     return;
-  }
 
-  Serial.println("AP mode lost. Restarting AP...");
+  Serial.println("WiFi lost. Reconnecting...");
 
   led.off();
   buzzer.off();
