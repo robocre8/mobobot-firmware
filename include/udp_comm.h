@@ -23,6 +23,29 @@ static inline void processCommand(uint8_t cmd, uint8_t* data) {
 
   switch (cmd) {
 
+    case READ_DATA: {
+      float sonar, tof, line_sensor, tl, tr, yaw, dist, color_sensor, wheel_radius_param, wheel_dist_param, max_wheel_speed_param;
+      readData(sonar, tof, line_sensor, tl, tr, yaw, dist, color_sensor, wheel_radius_param, wheel_dist_param, max_wheel_speed_param);
+
+      uint8_t tx[44];
+      size_t tx_len = 0;
+
+      memcpy(&tx[tx_len], &sonar, sizeof(sonar)); tx_len += 4;
+      memcpy(&tx[tx_len], &tof, sizeof(tof)); tx_len += 4;
+      memcpy(&tx[tx_len], &line_sensor, sizeof(line_sensor)); tx_len += 4;
+      memcpy(&tx[tx_len], &tl, sizeof(tl)); tx_len += 4;
+      memcpy(&tx[tx_len], &tr, sizeof(tr)); tx_len += 4;
+      memcpy(&tx[tx_len], &yaw, sizeof(yaw)); tx_len += 4;
+      memcpy(&tx[tx_len], &dist, sizeof(dist)); tx_len += 4;
+      memcpy(&tx[tx_len], &color_sensor, sizeof(color_sensor)); tx_len += 4;
+      memcpy(&tx[tx_len], &wheel_radius_param, sizeof(wheel_radius_param)); tx_len += 4;
+      memcpy(&tx[tx_len], &wheel_dist_param, sizeof(wheel_dist_param)); tx_len += 4;
+      memcpy(&tx[tx_len], &max_wheel_speed_param, sizeof(max_wheel_speed_param)); tx_len += 4;
+
+      udpSend(tx, tx_len);
+      break;
+    }
+
     // case WRITE_GRIPPER_DIST: {
     //   float value = readFloat(data, 0);
     //   writeGripperDist((int)value);
@@ -76,128 +99,6 @@ static inline void processCommand(uint8_t cmd, uint8_t* data) {
       break;
     }
 
-    case SET_WHEEL_ODOM_PARAMS: {
-      float R_mm = readFloat(data, 0);
-      float L_mm = readFloat(data, 4);
-      setWheelOdomParams((int)R_mm, (int)L_mm);
-      break;
-    }
-
-    case GET_WHEEL_ODOM_PARAMS: {
-      float R_mm, L_mm;
-      getWheelOdomParams(R_mm, L_mm);
-
-      uint8_t tx[8];
-      size_t tx_len = 0;
-      memcpy(&tx[tx_len], &R_mm, sizeof(R_mm)); tx_len += 4;
-      memcpy(&tx[tx_len], &L_mm, sizeof(L_mm)); tx_len += 4;
-
-      udpSend(tx, tx_len);
-      break;
-    }
-
-    // case READ_TOF_SENSOR: {
-    //   float res = readTofSensor();
-    //   udpSend((uint8_t*)&res, sizeof(res));
-    //   break;
-    // }
-
-    case READ_SONAR: {
-      float res = readSonar();
-      udpSend((uint8_t*)&res, sizeof(res));
-      break;
-    }
-
-    case READ_LINE_SENSOR1: {
-      float res = readLineSensor1();
-      udpSend((uint8_t*)&res, sizeof(res));
-      break;
-    }
-
-    case READ_LINE_SENSOR2: {
-      float res = readLineSensor2();
-      udpSend((uint8_t*)&res, sizeof(res));
-      break;
-    }
-
-    case READ_MOTOR_STATES: {
-      float tl, wl, tr, wr;
-      readMotorStates(tl, wl, tr, wr);
-
-      uint8_t tx[16];
-      size_t tx_len = 0;
-      memcpy(&tx[tx_len], &tl, sizeof(tl)); tx_len += 4;
-      memcpy(&tx[tx_len], &wl, sizeof(wl)); tx_len += 4;
-      memcpy(&tx[tx_len], &tr, sizeof(tr)); tx_len += 4;
-      memcpy(&tx[tx_len], &wr, sizeof(wr)); tx_len += 4;
-
-      udpSend(tx, tx_len);
-      break;
-    }
-
-    case READ_ODOM_DATA: {
-      float x, y, t, v, w, d;
-      readOdomData(x, y, t, v, w, d);
-
-      uint8_t tx[28];
-      size_t tx_len = 0;
-      memcpy(&tx[tx_len], &x, sizeof(x)); tx_len += 4;
-      memcpy(&tx[tx_len], &y, sizeof(y)); tx_len += 4;
-      memcpy(&tx[tx_len], &t, sizeof(t)); tx_len += 4;
-      memcpy(&tx[tx_len], &v, sizeof(v)); tx_len += 4;
-      memcpy(&tx[tx_len], &w, sizeof(w)); tx_len += 4;
-      memcpy(&tx[tx_len], &d, sizeof(d)); tx_len += 4;
-
-      udpSend(tx, tx_len);
-      break;
-    }
-
-    // case READ_ALL_SENSORS: {
-    //   float sonar, sonar2, tl, wl, tr, wr, x, y, theta, v, w, dist;
-    //   readAllSensors(sonar, sonar2, tl, wl, tr, wr, x, y, theta, v, w, dist);
-
-    //   uint8_t tx[48];
-    //   size_t tx_len = 0;
-    //   memcpy(&tx[tx_len], &sonar, sizeof(sonar)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &sonar2, sizeof(sonar2)); tx_len += 4;
-      
-    //   memcpy(&tx[tx_len], &tl, sizeof(tl)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &wl, sizeof(wl)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &tr, sizeof(tr)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &wr, sizeof(wr)); tx_len += 4;
-
-    //   memcpy(&tx[tx_len], &x, sizeof(x)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &y, sizeof(y)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &theta, sizeof(theta)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &v, sizeof(v)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &w, sizeof(w)); tx_len += 4;
-    //   memcpy(&tx[tx_len], &dist, sizeof(dist)); tx_len += 4;
-
-    //   udpSend(tx, tx_len);
-    //   break;
-    // }
-
-    case READ_ALL_SENSORS: {
-      float sonar, line_sensor1, line_sensor2, tl, tr, theta, dist;
-      readAllSensors(sonar, line_sensor1, line_sensor2, tl, tr, theta, dist);
-
-      uint8_t tx[28];
-      size_t tx_len = 0;
-      memcpy(&tx[tx_len], &sonar, sizeof(sonar)); tx_len += 4;
-
-      memcpy(&tx[tx_len], &line_sensor1, sizeof(line_sensor1)); tx_len += 4;
-      memcpy(&tx[tx_len], &line_sensor2, sizeof(line_sensor2)); tx_len += 4;
-      
-      memcpy(&tx[tx_len], &tl, sizeof(tl)); tx_len += 4;
-      memcpy(&tx[tx_len], &tr, sizeof(tr)); tx_len += 4;
-
-      memcpy(&tx[tx_len], &theta, sizeof(theta)); tx_len += 4;
-      memcpy(&tx[tx_len], &dist, sizeof(dist)); tx_len += 4;
-
-      udpSend(tx, tx_len);
-      break;
-    }
-
     case SET_CONTROLLER_CMD_TIMEOUT: {
       float value = readFloat(data, 0);
       setControllerCmdTimeout((int)value);
@@ -216,15 +117,27 @@ static inline void processCommand(uint8_t cmd, uint8_t* data) {
       break;
     }
 
-    case GET_UDP_CONN_TIMEOUT: {
-      float timeout_ms = getUdpConnTimeout();
-      udpSend((uint8_t*)&timeout_ms, sizeof(timeout_ms));
-      break;
-    }
-
     case UDP_HEART_BEAT: {
       // float value = readFloat(data, 0);
       udpHeartBeat();
+      break;
+    }
+
+    case RESET_PARAMS: {
+      float res = triggerResetParams();
+      udpSend((uint8_t*)&res, sizeof(res));
+      break;
+    }
+
+    case SET_WHEEL_RADIUS: {
+      float value = readFloat(data, 0);
+      setWheelRadius(value);
+      break;
+    }
+
+    case SET_WHEEL_DISTANCE: {
+      float value = readFloat(data, 0);
+      setWheelDistance(value);
       break;
     }
 

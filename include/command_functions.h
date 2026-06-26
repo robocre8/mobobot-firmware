@@ -2,40 +2,45 @@
 #define COMMAND_FUNCTIONS_H
 
 #include <Arduino.h>
+#include <Preferences.h>
 #include <Wire.h>
 #include <Led.h>
 #include <ESP32Servo.h>
 #include <Ultrasonic.h>
 #include <movingAvg.h>  
-// #include "gripper.h"
+#include "gripper.h"
 #include <EPMC_I2C_Client.h>
 // #include <EIMU_I2C_Client.h>
 #include "buzzer.h"
 #include "ir_sensor.h"
+#include "tof_sensor.h"
+
+
+//------------ WIFI CONFIG --------------
+const char* WIFI_SSID = "mobobot1234";
+const char* WIFI_PASS = "mobobot1234";
+//---------------------------------------
+
 
 //------------ Communication Command IDs --------------//
 enum CommandID : uint8_t {
   START_BYTE = 0xAA,
-  WRITE_SERVO1_ANGLE = 0x01,
-  WRITE_SERVO2_ANGLE = 0x02,
-  WRITE_BUZZER = 0x03,
-  WRITE_RGB = 0x04,
-  WRITE_MOTOR_VEL = 0X05,
-  WRITE_MOTOR_PWM = 0X06,
-  WRITE_CMD_VEL = 0x07,
-  SET_WHEEL_ODOM_PARAMS = 0X08,
-  GET_WHEEL_ODOM_PARAMS = 0X09,
-  READ_SONAR = 0x0A,
-  READ_LINE_SENSOR1 = 0x0B,
-  READ_LINE_SENSOR2 = 0x0C,
-  READ_MOTOR_STATES = 0X0D,
-  READ_ODOM_DATA = 0X0E,
-  READ_ALL_SENSORS = 0X0F,
-  CLEAR_CONTROLLER_DATA = 0X10,
-  SET_CONTROLLER_CMD_TIMEOUT = 0X11,
-  SET_UDP_CONN_TIMEOUT = 0X12,
-  GET_UDP_CONN_TIMEOUT = 0X13,
-  UDP_HEART_BEAT = 0X14,
+  READ_DATA = 0x01,
+  WRITE_SERVO1_ANGLE = 0x02,
+  WRITE_SERVO2_ANGLE = 0x03,
+  WRITE_BUZZER = 0x04,
+  WRITE_RGB = 0x05,
+  WRITE_MOTOR_VEL = 0x06,
+  WRITE_MOTOR_PWM = 0x07,
+  WRITE_CMD_VEL = 0x08,
+  SET_WHEEL_ODOM_PARAMS = 0x09,
+  CLEAR_CONTROLLER_DATA = 0x0A,
+  SET_CONTROLLER_CMD_TIMEOUT = 0x0B,
+  SET_UDP_CONN_TIMEOUT = 0x0C,
+  UDP_HEART_BEAT = 0x0D,
+  RESET_PARAMS = 0x0E,
+  SET_WHEEL_RADIUS = 0x0F,
+  SET_WHEEL_DISTANCE = 0x10,
 };
 //---------------------------------------------------//
 
@@ -142,8 +147,8 @@ EPMC_I2C_Client controller(epmc_i2c_address);
 
 bool epmc_connected = false;
 
-float R = 0.03; //wheel radius
-float L = 0.195; //wheel seperation
+float R = 0.034; //wheel radius
+float L = 0.165; //wheel seperation
 
 int motor_cmd_type = 0;
 
@@ -221,6 +226,63 @@ int line_sensor2_read = 0;
 
 
 
+
+
+//--------------- storage variables -----------------//
+bool firstLoad = false;
+
+Preferences storage;
+
+const char * R_key = "wheelRadius";
+
+const char * L_key = "wheelDistance";
+
+const char * firstLoad_key = "firstLoad";
+
+const char * params_ns = "params"; // preference namespace
+
+void resetParamsInStorage(){
+  storage.begin(params_ns, false);
+
+  storage.putFloat(R_key, 0.034);
+  storage.putFloat(L_key, 0.165);
+
+  storage.end();
+}
+
+void initParams(){
+  //check for firstLoad
+  storage.begin(params_ns, true);
+  firstLoad = storage.getBool(firstLoad_key);
+  storage.end();
+  // if firsLoad -> reset all params and set firstLoad to false
+  if(firstLoad == true){
+    resetParamsInStorage();
+    firstLoad = false;
+    storage.begin(params_ns, false);
+    storage.putBool(firstLoad_key, firstLoad);
+    storage.end();
+  }
+
+}
+
+void loadStoredParams(){
+  initParams();
+  // load each parameter form the storage to the local variables
+  storage.begin(params_ns, true);
+
+  R = storage.getFloat(R_key, 0.034);
+  L = storage.getFloat(L_key, 0.165);
+
+  storage.end();
+}
+//-------------------------------------------------//
+
+
+
+
+
+
 //--------------- global functions ----------------//
 float writeServo1Angle(int angle_deg)
 {
@@ -289,98 +351,6 @@ float writeCmdVel(float v, float w)
   return 1.0;
 }
 
-float setWheelOdomParams(int R_mm, int L_mm)
-{
-  R = (float)R_mm/1000.0;
-  L = (float)L_mm/1000.0;
-  return 1.0;
-}
-
-float getWheelOdomParams(float &R_mm, float &L_mm)
-{
-  R_mm = R*1000.0;
-  L_mm = L*1000.0;
-  return 1.0;
-}
-
-// float readTofSensor()
-// {  
-//   return (float)tof_dist_mm;
-// }
-
-float readSonar()
-{  
-  return (float)sonar_dist_mm;
-}
-
-float readLineSensor1()
-{ 
-  return (float)lineSensor1.read();
-}
-
-float readLineSensor2()
-{ 
-  return (float) lineSensor2.read();
-}
-
-float readMotorStates(float &tl, float &wl, float &tr, float &wr)
-{  
-  tl = motor_states[0];
-  wl = motor_states[1];
-  tr = motor_states[2];
-  wr = motor_states[3];
-
-  return 1.0;
-}
-
-float readOdomData(float &x, float &y, float &theta, float &v, float &w, float &d)
-{  
-  x = odom_data[0];
-  y = odom_data[1];
-  theta = odom_data[2];
-  v = odom_data[3];
-  w = odom_data[4];
-  d = odom_data[5];
-
-  return 1.0;
-}
-
-// float readAllSensors(float &sonar, float &sonar2, float &tl, float &wl, float &tr, float &wr, float &x, float &y, float &theta, float &v, float &w, float &d)
-// {
-//   sonar = sonar_dist_mm;
-//   sonar2 = sonar2_dist_mm;
-
-  // tl = motor_states[0];
-  // wl = motor_states[1];
-  // tr = motor_states[2];
-  // wr = motor_states[3];
-
-//   x = odom_data[0];
-//   y = odom_data[1];
-//   theta = odom_data[2];
-//   v = odom_data[3];
-//   w = odom_data[4];
-//   d = odom_data[5];
-
-//   return 1.0;
-// }
-
-float readAllSensors(float &sonar, float &line_sensor1, float &line_sensor2, float &tl, float &tr, float &theta, float &dist)
-{
-  sonar = sonar_dist_mm;
-
-  line_sensor1 = lineSensor1.read();
-  line_sensor2 = lineSensor2.read();
-
-  tl = motor_states[0];
-  tr = motor_states[2];
-
-  theta = odom_data[2];
-  dist = odom_data[5];
-
-  return 1.0;
-}
-
 float clearControllerData()
 { 
   controller.clearDataBuffer();
@@ -403,10 +373,10 @@ float setUdpConnTimeout(int timeout_ms)
   return 1.0;
 }
 
-float getUdpConnTimeout()
-{ 
-  return (float)(udp_comm_timeout_us/1000);
-}
+// float getUdpConnTimeout()
+// { 
+//   return (float)(udp_comm_timeout_us/1000);
+// }
 
 float udpHeartBeat()
 { 
@@ -415,6 +385,64 @@ float udpHeartBeat()
   emergency_stop = true;
   return 1.0;
 }
+
+float setWheelRadius(float r)
+{
+  R = r;
+
+  storage.begin(params_ns, false);
+  storage.putFloat(R_key, R);
+  storage.end();
+
+  return 1.0;
+}
+
+float setWheelDistance(float l)
+{
+  L = l;
+
+  storage.begin(params_ns, false);
+  storage.putFloat(L_key, L);
+  storage.end();
+
+  return 1.0;
+}
+
+float triggerResetParams()
+{
+  firstLoad = true;
+
+  storage.begin(params_ns, false);
+  storage.putBool(firstLoad_key, firstLoad);
+  storage.end();
+  // reload to reset
+  // loadStoredParams();
+
+  return 1.0;
+}
+
+//---------------------- READ DATA -------------------------//
+
+float readData(float &sonar, float &tof, float &line_sensor, 
+              float &tl, float &tr, float &yaw, float &dist, 
+              float &color_sensor, float &wheelRadiusParam, 
+              float &wheelDistanceParam, float &maxWheelSpeedParam)
+{
+  sonar = sonar_dist_mm;
+  tof = 0.0;
+  line_sensor = 0.0;
+  tl = motor_states[0];
+  tr = motor_states[2];
+  yaw = odom_data[2];
+  dist = odom_data[5];
+  color_sensor = 0.0;
+  wheelRadiusParam = R;
+  wheelDistanceParam = L;
+  maxWheelSpeedParam = 0.0;
+
+  return 1.0;
+}
+
 //-------------------------------------------------------------------//
 
 
