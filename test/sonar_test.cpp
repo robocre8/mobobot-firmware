@@ -1,16 +1,14 @@
 #include <Arduino.h>
-#include <Ultrasonic.h>
-#include <Led.h>
-
-#define TRIGGER_PIN  32
-#define ECHO_PIN     34
-
-// #define TRIGGER_PIN  33
-// #define ECHO_PIN     35
+#include <sonar_sensor.h>
+#include <led.h>
 
 #define LED_PIN      2
 
-Ultrasonic ultrasonic(TRIGGER_PIN, ECHO_PIN);
+const int TRIGGER_PIN = 33;
+const int ECHO_PIN = 35;
+int SONAR_TIMEOUT_MS = 15;
+
+SonarSensor sonar(TRIGGER_PIN, ECHO_PIN, SONAR_TIMEOUT_MS);
 Led led(LED_PIN);
 
 void setup() {
@@ -25,7 +23,7 @@ void setup() {
 }
 
 void loop() {
-  int dist_mm = (int)(ultrasonic.convert(ultrasonic.timing(), Ultrasonic::CM)*10);
+  int dist_mm = sonar.readDist();
 
   Serial.print("Dist (MM): ");
   Serial.println(dist_mm);

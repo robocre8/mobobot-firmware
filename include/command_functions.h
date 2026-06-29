@@ -5,14 +5,9 @@
 #include <Preferences.h>
 #include <Wire.h>
 #include <Led.h>
-#include <ESP32Servo.h>
-#include <Ultrasonic.h>
-#include <movingAvg.h>  
-#include "gripper.h"
 #include <EPMC_I2C_Client.h>
 // #include <EIMU_I2C_Client.h>
 #include "buzzer.h"
-#include "ir_sensor.h"
 #include "tof_sensor.h"
 
 
