@@ -7,14 +7,19 @@
 
 class ServoControl {
   public:
+    ServoControl();
     ServoControl(int pin);
     void begin();
     void write(int);
     void setMinMaxCommandUS(int, int);
+    void attachPin(int pin);
 
   private:
     int SERVO_MIN_US_COMMAND = 500;
     int SERVO_MAX_US_COMMAND = 2450;
+
+    int SERVO_MAX_ANGLE_COMMAND = 90;
+    int SERVO_MIN_ANGLE_COMMAND = -90;
 
     int servo_pin;
     Servo servo;
@@ -23,7 +28,14 @@ class ServoControl {
 
 //--------------------------------------------
 
+ServoControl::ServoControl(){}
+
 ServoControl::ServoControl(int pin)
+{
+  servo_pin = pin;
+}
+
+void ServoControl::attachPin(int pin)
 {
   servo_pin = pin;
 }
@@ -45,7 +57,7 @@ void ServoControl::setMinMaxCommandUS(int min_us, int max_us)
 }
 
 int ServoControl::servoAngle(int angle_deg) {
-  int a = constrain(angle_deg, -90, 90);
+  int a = constrain(angle_deg, SERVO_MIN_ANGLE_COMMAND, SERVO_MAX_ANGLE_COMMAND);
   int angle = map(a, -90, 90, 0, 180);
   return angle;
 }

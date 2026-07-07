@@ -4,12 +4,16 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <Wire.h>
-#include <Led.h>
 #include <EPMC_I2C_Client.h>
 // #include <EIMU_I2C_Client.h>
 #include "buzzer.h"
+#include "sonar_sensor.h"
 #include "tof_sensor.h"
-
+#include "servo_control.h"
+#include "linear_gripper_control.h"
+#include <led.h>
+#include "rgb_led.h"
+#include "line_sensor_5_channel.h"
 
 //------------ WIFI CONFIG --------------
 const char* WIFI_SSID = "mobobot1234";
@@ -21,21 +25,23 @@ const char* WIFI_PASS = "mobobot1234";
 enum CommandID : uint8_t {
   START_BYTE = 0xAA,
   READ_DATA = 0x01,
-  WRITE_SERVO1_ANGLE = 0x02,
-  WRITE_SERVO2_ANGLE = 0x03,
-  WRITE_BUZZER = 0x04,
-  WRITE_RGB = 0x05,
-  WRITE_MOTOR_VEL = 0x06,
-  WRITE_MOTOR_PWM = 0x07,
-  WRITE_CMD_VEL = 0x08,
-  SET_WHEEL_ODOM_PARAMS = 0x09,
-  CLEAR_CONTROLLER_DATA = 0x0A,
-  SET_CONTROLLER_CMD_TIMEOUT = 0x0B,
-  SET_UDP_CONN_TIMEOUT = 0x0C,
-  UDP_HEART_BEAT = 0x0D,
-  RESET_PARAMS = 0x0E,
-  SET_WHEEL_RADIUS = 0x0F,
-  SET_WHEEL_DISTANCE = 0x10,
+  WRITE_SERVO_ANGLE = 0x02,
+  WRITE_GRIPPER_ANGLE = 0x03,
+  WRITE_GRIPPER_DIST = 0x04,
+  WRITE_BUZZER = 0x05,
+  WRITE_LED = 0x06,
+  WRITE_RGB_LED = 0x07,
+  WRITE_MOTOR_VEL = 0x08,
+  WRITE_MOTOR_PWM = 0x09,
+  WRITE_CMD_VEL = 0x0A,
+  SET_WHEEL_ODOM_PARAMS = 0x0B,
+  CLEAR_CONTROLLER_DATA = 0x0C,
+  SET_CONTROLLER_CMD_TIMEOUT = 0x0D,
+  SET_UDP_CONN_TIMEOUT = 0x0E,
+  UDP_HEART_BEAT = 0x0F,
+  RESET_PARAMS = 0x10,
+  SET_WHEEL_RADIUS = 0x11,
+  SET_WHEEL_DISTANCE = 0x12,
 };
 //---------------------------------------------------//
 
@@ -62,39 +68,11 @@ Led led(LED_PIN);
 
 
 //--------------------------
-const int SERVO_MIN_US = 500;
-const int SERVO_MAX_US = 2450;
-const int SERVO1_PIN = 19;
-const int SERVO2_PIN = 18;
-Servo servo1;
-int servo1_angle_deg = 0;
-Servo servo2;
-int servo2_angle_deg = 0;
+const int SERVO_PIN = 19;
+ServoControl servo(SERVO_PIN);
 
-void servo_init() {
-  // Allow allocation of all timers
-  ESP32PWM::allocateTimer(0);
-  ESP32PWM::allocateTimer(1);
-  ESP32PWM::allocateTimer(2);
-  ESP32PWM::allocateTimer(3);
-  servo1.setPeriodHertz(50);    // Standard 50 Hz servo frequency
-  servo1.attach(SERVO1_PIN, SERVO_MIN_US, SERVO_MAX_US);
-  servo2.setPeriodHertz(50);    // Standard 50 Hz servo frequency
-  servo2.attach(SERVO2_PIN, SERVO_MIN_US, SERVO_MAX_US);
-}
-
-int servoAngle(int angle_deg) {
-  int a = constrain(angle_deg, -90, 90);
-  int angle = map(a, -90, 90, 0, 180);
-  return angle;
-}
-//--------------------------
-
-
-//--------------------------
-// Gripper gripper(18);
-// int gripper_dist_mm = gripper.GRIPPER_MAX_DIST;
-// int gripper_dist_mm = 5;
+const int GRIPPER_PIN = 18;
+LinearGripperControl gripper(GRIPPER_PIN);
 //--------------------------
 
 
@@ -112,27 +90,7 @@ const int R_LED_PIN = 27;
 const int B_LED_PIN = 26;
 const int G_LED_PIN = 25;
 
-void rgb_init() {
-  pinMode(R_LED_PIN, OUTPUT);
-  pinMode(G_LED_PIN, OUTPUT);
-  pinMode(B_LED_PIN, OUTPUT);
-
-  analogWrite(R_LED_PIN, 255);
-  analogWrite(G_LED_PIN, 255);
-  analogWrite(B_LED_PIN, 255);
-}
-
-void rgb_on(int r_pwm, int g_pwm, int b_pwm) {
-  analogWrite(R_LED_PIN, 255-r_pwm);
-  analogWrite(G_LED_PIN, 255-g_pwm);
-  analogWrite(B_LED_PIN, 255-b_pwm);
-}
-
-void rgb_off() {
-  analogWrite(R_LED_PIN, 255);
-  analogWrite(G_LED_PIN, 255);
-  analogWrite(B_LED_PIN, 255);
-}
+RGBLed rgb_led(R_LED_PIN, G_LED_PIN, B_LED_PIN);
 //--------------------------
 
 
@@ -189,33 +147,31 @@ float computeWR(float v, float w) {
 
 
 //-----------------------------
-int SONAR_TIMEOUT_MS = 15;
-
 const int TRIGGER_PIN = 33;
 const int ECHO_PIN = 35;
-Ultrasonic sonar(TRIGGER_PIN, ECHO_PIN, SONAR_TIMEOUT_MS);
-movingAvg sonar_filter(10);
-int sonar_dist_mm = 0;
+int SONAR_TIMEOUT_MS = 15;
 
-int read_sonar(){
-  int dist_mm = (int)(sonar.convert(sonar.timing(), Ultrasonic::CM)*10);
-  int dist_filter = sonar_filter.reading(dist_mm);
-  return dist_filter;
-}
+SonarSensor sonar(TRIGGER_PIN, ECHO_PIN, SONAR_TIMEOUT_MS);
+
+TOFSensor tof;
+
+int sonar_read_dist_mm;
+int tof_read_dist_mm;
 // ---------------------------
 
 
 
 
 // ---------------------------
-const int LINE_SENSOR1_PIN = 32;
-const int LINE_SENSOR2_PIN = 34;
+const int pin0 = 36;
+const int pin1 = 39;
+const int pin2 = 34;
+const int pin3 = 32;
+const int pin4 = 13;
 
-IRSensor lineSensor1(LINE_SENSOR1_PIN);
-IRSensor lineSensor2(LINE_SENSOR2_PIN);
+LineSensor5Channel line_sensor(pin0, pin1, pin2, pin3, pin4);
 
-int line_sensor1_read = 0;
-int line_sensor2_read = 0;
+int line_sensor_read_val;
 //-------------------------------------------------//
 
 
@@ -279,23 +235,23 @@ void loadStoredParams(){
 
 
 //--------------- global functions ----------------//
-float writeServo1Angle(int angle_deg)
+float writeServoAngle(int angle_deg)
 {
-  servo1_angle_deg = angle_deg;
+  servo.write(angle_deg);
   return 1.0;
 }
 
-float writeServo2Angle(int angle_deg)
+float writeGripperAngle(int angle_deg)
 {
-  servo2_angle_deg = angle_deg;
+  gripper.gripAngle(angle_deg);
   return 1.0;
 }
 
-// float writeGripperDist(int dist_mm)
-// {
-//   gripper_dist_mm = dist_mm;
-//   return 1.0;
-// }
+float writeGripperDist(int dist_mm)
+{
+  gripper.gripDist(dist_mm);
+  return 1.0;
+}
 
 float writeBuzzer(int value)
 {
@@ -316,9 +272,17 @@ float writeBuzzer(int value)
   return 1.0;
 }
 
+float writeLed(int val)
+{
+  int led_val = constrain(val, 0, 1);
+  if (led_val) led.on();
+  else led.off();
+  return 1.0;
+}
+
 float writeRGB(int r_pwm, int g_pwm, int b_pwm)
 {
-  rgb_on(r_pwm, g_pwm, b_pwm);
+  rgb_led.on(r_pwm, g_pwm, b_pwm);
   return 1.0;
 }
 
@@ -423,9 +387,9 @@ float readData(float &sonar, float &tof, float &line_sensor,
               float &color_sensor, float &wheelRadiusParam, 
               float &wheelDistanceParam, float &maxWheelSpeedParam)
 {
-  sonar = sonar_dist_mm;
-  tof = 0.0;
-  line_sensor = 0.0;
+  sonar = sonar_read_dist_mm;
+  tof = tof_read_dist_mm;
+  line_sensor = line_sensor_read_val;
   tl = motor_states[0];
   tr = motor_states[2];
   yaw = odom_data[2];

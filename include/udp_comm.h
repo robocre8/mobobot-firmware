@@ -46,21 +46,21 @@ static inline void processCommand(uint8_t cmd, uint8_t* data) {
       break;
     }
 
-    // case WRITE_GRIPPER_DIST: {
-    //   float value = readFloat(data, 0);
-    //   writeGripperDist((int)value);
-    //   break;
-    // }
-
-    case WRITE_SERVO1_ANGLE: {
+    case WRITE_SERVO_ANGLE: {
       float value = readFloat(data, 0);
-      writeServo1Angle((int)value);
+      writeServoAngle((int)value);
       break;
     }
 
-    case WRITE_SERVO2_ANGLE: {
+    case WRITE_GRIPPER_ANGLE: {
       float value = readFloat(data, 0);
-      writeServo2Angle((int)value);
+      writeGripperAngle((int)value);
+      break;
+    }
+
+    case WRITE_GRIPPER_DIST: {
+      float value = readFloat(data, 0);
+      writeGripperDist((int)value);
       break;
     }
 
@@ -70,7 +70,13 @@ static inline void processCommand(uint8_t cmd, uint8_t* data) {
       break;
     }
 
-    case WRITE_RGB: {
+    case WRITE_LED: {
+      float value = readFloat(data, 0);
+      writeLed((int)value);
+      break;
+    }
+
+    case WRITE_RGB_LED: {
       float r_value = readFloat(data, 0);
       float g_value = readFloat(data, 4);
       float b_value = readFloat(data, 8);

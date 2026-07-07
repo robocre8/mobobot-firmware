@@ -1,34 +1,30 @@
 #include <Arduino.h>
-#include "gripper_control.h"
+#include "servo_control.h"
 
-#define SERVO_PIN     19
+#define SERVO_PIN     18
 
-GripperControl gripper(SERVO_PIN);
-
-int opening_dist = 0;
-int opening_angle = 0;
+ServoControl servo(SERVO_PIN);
 
 
 void setup() {
   Serial.begin(115200);
-  gripper.begin();
+  servo.begin();
 
-  gripper.write(0);
+  servo.write(0);
   delay(2000);
 }
 
 void loop() {
+  servo.write(0);
+  delay(3000);
 
-  opening_dist = gripper.getMaxGripDist();
-  opening_angle = gripper.convertDistToAngle(opening_dist);
-  gripper.open();
-  Serial.println(opening_angle);
-  delay(2000);
+  servo.write(90);
+  delay(3000);
 
-  opening_dist = gripper.getMinGripDist();
-  opening_angle = gripper.convertDistToAngle(opening_dist);
-  gripper.close();
-  Serial.println(opening_angle);
-  delay(2000);
+  servo.write(0);
+  delay(3000);
+
+  servo.write(-90);
+  delay(3000);
 
 }
