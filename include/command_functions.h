@@ -101,7 +101,7 @@ EPMC_I2C_Client controller(epmc_i2c_address);
 bool epmc_connected = false;
 
 float R = 0.034; //wheel radius
-float L = 0.165; //wheel seperation
+float L = 0.173; //wheel seperation
 
 int motor_cmd_type = 0;
 
@@ -154,6 +154,7 @@ int SONAR_TIMEOUT_MS = 15;
 SonarSensor sonar(TRIGGER_PIN, ECHO_PIN, SONAR_TIMEOUT_MS);
 
 TOFSensor tof;
+bool tof_connected = false;
 
 int sonar_read_dist_mm;
 int tof_read_dist_mm;
@@ -382,14 +383,14 @@ float triggerResetParams()
 
 //---------------------- READ DATA -------------------------//
 
-float readData(float &sonar, float &tof, float &line_sensor, 
+float readData(float &sonar_val, float &tof_val, float &line_sensor_val, 
               float &tl, float &tr, float &yaw, float &dist, 
               float &color_sensor, float &wheelRadiusParam, 
               float &wheelDistanceParam, float &maxWheelSpeedParam)
 {
-  sonar = sonar_read_dist_mm;
-  tof = tof_read_dist_mm;
-  line_sensor = line_sensor_read_val;
+  sonar_val = sonar_read_dist_mm;
+  tof_val = tof_read_dist_mm;
+  line_sensor_val = line_sensor_read_val;
   tl = motor_states[0];
   tr = motor_states[2];
   yaw = odom_data[2];

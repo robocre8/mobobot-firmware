@@ -46,8 +46,8 @@ void connect_wifi()
   led.off();
   buzzer.off();
 
-  // Initialize mDNS (So you can still use mobobot.local)
-  if (!MDNS.begin("mobobot")) {   
+  // Initialize mDNS (So you can still use educre8bot.local)
+  if (!MDNS.begin("educre8bot")) {   
     Serial.println("Error setting up MDNS responder!");
     while(1) {
       delay(1000);
@@ -221,10 +221,12 @@ void setup()
   // initialize Servo and Gripper
   servo.begin();
   gripper.begin();
+  servo.write(0);
+  gripper.gripDist(55);
 
   // initilize tof sensor
-  bool is_initialized = tof.initialize();
-  if (!is_initialized) {
+  tof_connected = tof.initialize();
+  if (!tof_connected) {
     Serial.println("Error Initializing TOF Sensor. Pls Check Connection");
     buzzer.on();
     led.on();
@@ -256,10 +258,6 @@ void setup()
   led.on();
   delay(1500);
   led.off();
-
-
-  servo.write(0);
-  gripper.gripAngle(75);
 
 
   if(epmc_connected){
@@ -351,7 +349,7 @@ void loop()
     if( (now_us - sensorReadTime) > sensorReadTimeInterval ) {
       sonar_read_dist_mm = sonar.readDist();
 
-      tof_read_dist_mm = tof.readDist();
+      if (tof_connected) tof_read_dist_mm = tof.readDist();
 
       line_sensor_read_val = line_sensor.readFullValue();
 
